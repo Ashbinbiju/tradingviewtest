@@ -135,21 +135,47 @@ def place_market_order(symbol, side, price=0, forced_qty=None):
         return None
 
 
+def get_actual_position_qty(symbol):
+    """Query Dhan API for the true real-time open quantity of this symbol."""
+    security_id = get_security_id(symbol)
+    if not security_id:
+        return 0
+        
+    try:
+        resp = dhan.get_positions()
+        if isinstance(resp, dict) and resp.get("status") == "success":
+            data = resp.get("data", [])
+            for pos in data:
+                # Match symbol and INTRADAY product type
+                if str(pos.get("securityId")) == str(security_id) and pos.get("productType") == PRODUCT:
+                    return int(pos.get("netQty", 0))
+    except Exception as e:
+        log.error(f"Failed to fetch live positions: {e}")
+        
+    return 0
+
+
 def close_position(symbol):
-    """Close any open position for the symbol by inversing the trade with EXACT quantity."""
-    if symbol not in positions:
-        log.warning(f"No open position to close for {symbol}")
-        return
-    current = positions[symbol]
+    """Close any open position by querying Dhan for the EXACT live quantity."""
+    actual_qty = get_actual_position_qty(symbol)
     
-    # Reverse the current side to close
-    exit_side = "SELL" if current["side"] == "BUY" else "BUY"
-    exit_qty = current["qty"]
+    if actual_qty == 0:
+        log.warning(f"No live open position exists on Dhan for {symbol}. Skipping exit (likely manually closed).")
+        # Clear stale memory if it exists
+        if symbol in positions:
+            del positions[symbol]
+        return None
+
+    # If actual_qty > 0 (LONG), we must SELL. If < 0 (SHORT), we must BUY.
+    exit_side = "SELL" if actual_qty > 0 else "BUY"
+    abs_qty = abs(actual_qty)
     
-    log.info(f"CLOSING {current['side']} position on {symbol} with {exit_side} {exit_qty}x")
-    resp = place_market_order(symbol, exit_side, price=0, forced_qty=exit_qty)
-    if resp:
+    log.info(f"CLOSING LIVE POSITION on {symbol} with {exit_side} {abs_qty}x")
+    resp = place_market_order(symbol, exit_side, price=0, forced_qty=abs_qty)
+    
+    if resp and symbol in positions:
         del positions[symbol]
+        
     return resp
 
 
