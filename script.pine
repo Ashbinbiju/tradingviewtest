@@ -1774,6 +1774,11 @@ if currentSig == "BUY" and alertConf and bar_index > lastEntryBar
     if t2Hit and not t3Hit and high >= tp3
         t3Hit    := true
         tp3Trig  := true
+        exitPrice := tp2
+        line.set_y1(l_sl, exitPrice)
+        line.set_y2(l_sl, exitPrice)
+        label.set_y(lb_sl, exitPrice)
+        label.set_text(lb_sl, "SL " + str.tostring(exitPrice, format.mintick))
         label.new(bar_index, tp3, "T3 ✓", color=color.new(color.lime,0), textcolor=color.black, style=label.style_label_right, size=size.tiny)
     if t3Hit and not t4Hit and high >= tp4
         t4Hit    := true
@@ -1846,6 +1851,11 @@ if currentSig == "SELL" and alertConf and bar_index > lastEntryBar
     if t2Hit and not t3Hit and low <= tp3
         t3Hit    := true
         tp3Trig  := true
+        exitPrice := tp2
+        line.set_y1(l_sl, exitPrice)
+        line.set_y2(l_sl, exitPrice)
+        label.set_y(lb_sl, exitPrice)
+        label.set_text(lb_sl, "SL " + str.tostring(exitPrice, format.mintick))
         label.new(bar_index, tp3, "T3 ✓", color=color.new(color.lime,0), textcolor=color.black, style=label.style_label_right, size=size.tiny)
     if t3Hit and not t4Hit and low <= tp4
         t4Hit    := true
